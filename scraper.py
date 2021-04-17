@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse
+import urllib.robotparser  
 
 #import requests
 
@@ -14,23 +15,55 @@ def extract_next_links(url, resp):
     # Implementation requred.
     #print(url, resp)
 
+    print("ok with crawl? -> ", checkRobots(url))
     http_status = resp.status
     if http_status == 200:
         #good response
         #parse w/ Beautiful Soup
         raw_html = resp.raw_response.content
         soup = BeautifulSoup(raw_html, features = "html.parser")
+        
+        #parse and tokenize text from url
+        
+
+
 
 		#find all <a> tags and extract link from href attribute
         for a_tags in soup.findAll("a"):
             hyperlink = a_tags["href"]
-            print(hyperlink)
+        #    print(hyperlink)
 
 
     else:
         pass
     
     return list()
+
+def tokenizer():
+    pass
+
+
+def isVisited(url):
+    #check if url has been visited or not
+    #return bool
+	pass
+
+def checkRobots(url):
+    #given url, parse robots.txt to see if it is ok to crawl or not
+    robots_url = url + "/robots.txt"
+    robot_page = urllib.robotparser.RobotFileParser()
+    robot_page.set_url(robots_url)
+    robot_page.read()
+
+    #check if it is ok to crawl
+    validity = robot_page.can_fetch("*", robots_url)
+    return validity
+
+
+
+
+
+
 
 def is_valid(url):
     try:
