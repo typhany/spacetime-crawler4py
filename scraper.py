@@ -22,13 +22,13 @@ def extract_next_links(url, resp):
         raw_html = resp.raw_response.content
          #parse w/ Beautiful Soup
         soup = BeautifulSoup(raw_html, features = "html.parser")
-        
+        print(soup.get_text())
         #parse and tokenize text from url
         
 		#find all <a> tags and extract link from href attribute
-        for a_tags in soup.findAll("a"):
-            hyperlink = a_tags["href"]
-            print(hyperlink)
+        # for a_tags in soup.findAll("a"):
+        #     hyperlink = a_tags["href"]
+        #     print(hyperlink)
 
 
     else:
@@ -36,8 +36,13 @@ def extract_next_links(url, resp):
     
     return list()
 
-def tokenizer():
-    pass
+def tokenizer(text):
+	tokens = []
+	pass
+
+
+    #line_tokens = [i for i in re.split('[^a-z0-9]+', line) if i != '']
+
 
 
 def isVisited(url):
