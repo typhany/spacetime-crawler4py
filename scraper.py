@@ -25,7 +25,7 @@ def extract_next_links(url, resp):
         #print(soup.get_text())
         #print(type(soup.get_text()))
         
-        text = soup.get_text
+        text = soup.get_text()
         print(tokenizer(text))
 
 
