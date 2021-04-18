@@ -29,15 +29,12 @@ def extract_next_links(url, resp):
         raw_html = resp.raw_response.content
          #parse w/ Beautiful Soup
         soup = BeautifulSoup(raw_html, features = "html.parser")
-        #print(soup.get_text())
-        #print(type(soup.get_text()))
-        
+
+        #parse and tokenize text from url
         text = soup.get_text()
         tokens = tokenizer(text)
         current_tokens = computeTokenFrequency(tokens)
         total_tokens.update(current_tokens)
-
-        #parse and tokenize text from url
         
 		#find all <a> tags and extract link from href attribute
         for a_tags in soup.findAll("a"):
