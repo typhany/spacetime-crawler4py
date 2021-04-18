@@ -25,13 +25,10 @@ def extract_next_links(url, resp):
         
         #parse and tokenize text from url
         
-
-
-
 		#find all <a> tags and extract link from href attribute
         for a_tags in soup.findAll("a"):
             hyperlink = a_tags["href"]
-        #    print(hyperlink)
+            print(hyperlink)
 
 
     else:
