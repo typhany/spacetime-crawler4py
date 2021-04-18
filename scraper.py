@@ -15,12 +15,12 @@ def extract_next_links(url, resp):
     # Implementation requred.
     #print(url, resp)
 
-    print("ok with crawl? -> ", checkRobots(url))
+    #print("ok with crawl? -> ", checkRobots(url))
     http_status = resp.status
+    #200 means good response -> OK
     if http_status == 200:
-        #good response
-        #parse w/ Beautiful Soup
         raw_html = resp.raw_response.content
+         #parse w/ Beautiful Soup
         soup = BeautifulSoup(raw_html, features = "html.parser")
         
         #parse and tokenize text from url
@@ -48,16 +48,17 @@ def isVisited(url):
     #return bool
 	pass
 
-def checkRobots(url):
-    #given url, parse robots.txt to see if it is ok to crawl or not
-    robots_url = url + "/robots.txt"
-    robot_page = urllib.robotparser.RobotFileParser()
-    robot_page.set_url(robots_url)
-    robot_page.read()
+#for extra credit +1 point
+# def checkRobots(url):
+#     #given url, parse robots.txt to see if it is ok to crawl or not
+#     robots_url = url + "/robots.txt"
+#     robot_page = urllib.robotparser.RobotFileParser()
+#     robot_page.set_url(robots_url)
+#     robot_page.read()
 
-    #check if it is ok to crawl
-    validity = robot_page.can_fetch("*", robots_url)
-    return validity
+#     #check if it is ok to crawl
+#     validity = robot_page.can_fetch("*", robots_url)
+#     return validity
 
 
 
