@@ -18,7 +18,7 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-	links = []
+    links = []
     # Implementation requred.
     #print(url, resp)
 
@@ -27,7 +27,7 @@ def extract_next_links(url, resp):
     #200 means good response -> OK
     if http_status == 200:
         raw_html = resp.raw_response.content
-         #parse w/ Beautiful Soup
+        #parse w/ Beautiful Soup
         soup = BeautifulSoup(raw_html, features = "html.parser")
 
         #parse and tokenize text from url
@@ -49,16 +49,16 @@ def extract_next_links(url, resp):
     return list()
 
 def tokenizer(text):
-	result = []
+    result = []
 
-	tokens = word_tokenize(text)
-	stopwords = stopwords.words('english')
+    tokens = word_tokenize(text)
+    stopwords_list = stopwords.words('english')
 
-	for t in tokens:
-		if t not in stopwords:
-			result.append(t)
+    for t in tokens:
+        if t not in stopwords_list:
+            result.append(t)
 
-	return result
+    return result
 
 	# tokens = []
 	# split_text = text.split()
@@ -68,25 +68,25 @@ def tokenizer(text):
 
 
 def computeTokenFrequency(tokens):
-	token_dict = defaultdict(int):
-	for t in tokens:
-		token_dict[t] += 1
-	return token_dict
+    token_dict = defaultdict(int)
+    for t in tokens:
+        token_dict[t] += 1
+    return token_dict
 
 def computeLinkCount(links):
-	domains_set = set()
-	subdomains_set = defaultdict(int)
+    domains_set = set()
+    subdomains_set = defaultdict(int)
 	
-	for url in links:
-		domain = urlparse(url).netloc
-		domains_set.add(domain)
-		subdomains_set[url] += 1
+    for url in links:
+	    domain = urlparse(url).netloc
+	    domains_set.add(domain)
+	    subdomains_set[url] += 1
 
-	for sd in subdomains_set.keys():
-		if sd in domains_set:
-			del subdomains_set[sd]
+    for sd in subdomains_set.keys():
+        if sd in domains_set:
+           del subdomains_set[sd]
 
-	return domains_set, subdomains_set
+    return domains_set, subdomains_set
 
 
 def isVisited(url):
