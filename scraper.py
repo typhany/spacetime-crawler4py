@@ -1,17 +1,24 @@
 import re
 from urllib.parse import urlparse
 import urllib.robotparser  
+from collections import defaultdict
 
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 #import requests
 
 from bs4 import BeautifulSoup
 
+#global variables
+total_tokens = dict()
+total_links = []
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+	links = []
     # Implementation requred.
     #print(url, resp)
 
@@ -26,15 +33,17 @@ def extract_next_links(url, resp):
         #print(type(soup.get_text()))
         
         text = soup.get_text()
-        print(tokenizer(text))
-
+        tokens = tokenizer(text)
+        current_tokens = computeTokenFrequency(tokens)
+        total_tokens.update(current_tokens)
 
         #parse and tokenize text from url
         
 		#find all <a> tags and extract link from href attribute
-        # for a_tags in soup.findAll("a"):
-        #     hyperlink = a_tags["href"]
-        #     print(hyperlink)
+        for a_tags in soup.findAll("a"):
+            hyperlink = a_tags["href"]
+            total_links.append(hyperlink)
+            #print(hyperlink)
 
 
     else:
@@ -43,21 +52,44 @@ def extract_next_links(url, resp):
     return list()
 
 def tokenizer(text):
-	tokens = []
-	#punctuated_tokens = []
-	split_text = text.split()
+	result = []
 
-	#pattern = '[^a-z0-9]+'
-	for word in split_text:
-		# if word.isalnum():
-		tokens.append(word.lower())
-		# else:
-		# 	punctuated_tokens.append(word)
+	tokens = word_tokenize(text)
+	stopwords = stopwords.words('english')
 
-	# print(tokens)
-	# print(punctuated_tokens)
+	for t in tokens:
+		if t not in stopwords:
+			result.append(t)
 
-	return tokens
+	return result
+
+	# tokens = []
+	# split_text = text.split()
+	# for word in split_text:
+	# 	tokens.append(word.lower())
+	# return tokens
+
+
+def computeTokenFrequency(tokens):
+	token_dict = defaultdict(int):
+	for t in tokens:
+		token_dict[t] += 1
+	return token_dict
+
+def computeLinkCount(links):
+	domains_set = set()
+	subdomains_set = defaultdict(int)
+	
+	for url in links:
+		domain = urlparse(url).netloc
+		domains_set.add(domain)
+		subdomains_set[url] += 1
+
+	for sd in subdomains_set.keys():
+		if sd in domains_set:
+			del subdomains_set[sd]
+
+	return domains_set, subdomains_set
 
 
 def isVisited(url):
