@@ -25,7 +25,7 @@ def extract_next_links(url, resp):
     #print("ok with crawl? -> ", checkRobots(url))
     http_status = resp.status
     #200 means good response -> OK
-    if http_status == 200:
+    if http_status == 200 and not isVisited(url):
         raw_html = resp.raw_response.content
         #parse w/ Beautiful Soup
         soup = BeautifulSoup(raw_html, features = "html.parser")
@@ -41,7 +41,7 @@ def extract_next_links(url, resp):
             #hyperlink = a_tags["href"]
             hyperlink = a_tags.get("href")
             #total_links.append(hyperlink)
-            if is_valid(hyperlink) and not isVisited(hyperlink):
+            if is_valid(hyperlink):
                 total_links.append(hyperlink)
                 links.append(hyperlink)
             #print(hyperlink)
@@ -102,7 +102,7 @@ def isVisited(url):
 
 def isTrap(url):
     #check if url is a trap
-    #emails, calendars
+    #emails, calendars 
     pass
 
 #for extra credit +1 point
@@ -124,10 +124,25 @@ def isTrap(url):
 
 
 def is_valid(url):
+####
+    #valid domains 
+    pattern1 = re.compile(r".*\.(?:ics|cs|informatics|stat)\.uci\.edu")
+    #pattern2 = re.compile(r"today\.uci\.edu/department/information_computer_sciences/*")
+    
+    
+####
+
     try:
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
+
+        if not re.match(pattern1, parsed.netloc):
+            return False
+        #if not re.match(pattern2, parsed.netloc):
+        #    return False
+
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
