@@ -38,15 +38,19 @@ def extract_next_links(url, resp):
         
 		#find all <a> tags and extract link from href attribute
         for a_tags in soup.findAll("a"):
-            hyperlink = a_tags["href"]
-            total_links.append(hyperlink)
+            #hyperlink = a_tags["href"]
+            hyperlink = a_tags.get("href")
+            #total_links.append(hyperlink)
+            if is_valid(hyperlink) and not isVisited(hyperlink):
+                total_links.append(hyperlink)
+                links.append(hyperlink)
             #print(hyperlink)
 
 
     else:
         pass
     
-    return list()
+    return links#list()
 
 def tokenizer(text):
     result = []
@@ -92,7 +96,14 @@ def computeLinkCount(links):
 def isVisited(url):
     #check if url has been visited or not
     #return bool
-	pass
+    if url in total_links:
+        return True
+    return False
+
+def isTrap(url):
+    #check if url is a trap
+    #emails, calendars
+    pass
 
 #for extra credit +1 point
 # def checkRobots(url):
