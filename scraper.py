@@ -21,12 +21,17 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-    visited_links.add(url)
+    #visited_links.add(url)
     links = []
     parsed = urlparse(url)    
 
     http_status = resp.status
     if http_status >= 200 and http_status <=202: 
+        #save links visited to txt file
+        visited_links.add(url)
+        with open("visited_links.txt", "a") as file:
+            file.write(url + "\n")
+
         raw_html = resp.raw_response.content
 
         #parse html w/ Beautiful Soup
@@ -201,7 +206,7 @@ def is_valid(url):
         if re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx" #added powerpoint slideshow
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
