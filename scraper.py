@@ -7,9 +7,9 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import csv
 from bs4 import BeautifulSoup
-
+import requests
 import shelve
-
+from time import sleep
 
 #global variables
 max_tokens_in_url = 0
@@ -25,58 +25,70 @@ def extract_next_links(url, resp):
     links = []
     parsed = urlparse(url)    
 
-    http_status = resp.status
-    if http_status >= 200 and http_status <=202: 
-        #save links visited to txt file
-        visited_links.add(url)
-        with open("visited_links.txt", "a") as file:
-            file.write(url + "\n")
-
-        raw_html = resp.raw_response.content
-
-        #parse html w/ Beautiful Soup
-        soup = BeautifulSoup(raw_html, features = "html.parser")
-            
-        #parse and tokenize text from url
-        text = soup.get_text()
-        tokens = tokenizer(text)
-        current_tokens = computeTokenFrequency(tokens)
-        #save tokens to tokenfile shelve db
-        syncTokenFile(current_tokens)       
-        
-        #check if it has more tokens than the last
-        global max_tokens_in_url
-        num_tokens = len(current_tokens)
-        if num_tokens > max_tokens_in_url:
-            max_tokens_in_url = num_tokens
-            url_with_max_tokens = url
-            #save page w/ most amount of tokens
-            syncLongestPage(num_tokens, url)            
-
-        found_ics_subdomains = []
-		#find all <a> tags and extract link from href attribute
-        for a_tags in soup.findAll("a"):
-            hyperlink = a_tags.get("href")
-
-            #check if path is absolute or relative 
-            is_absolute = bool(urlparse(hyperlink).netloc)
-            if is_absolute:
-                no_fragment = urldefrag(hyperlink).url
-            else: #combine relative link w/ domain(netloc)
-                full_hyperlink = urljoin(url, hyperlink)
-                no_fragment = urldefrag(full_hyperlink).url
-            links.append(no_fragment)
-            #syncUniqueLinks(
-            domain = urlparse(no_fragment).netloc
-            if "ics.uci.edu" in domain:
-                # unique_subdomains.add(domain)
-                found_ics_subdomains.append(domain)
-        #save pages within ics.uci.edu domain
-        syncICSSubdomains(found_ics_subdomains)       
-
-    else:
-        return []
+    response = requests.get(url, allow_redirects = False)
+    http_status = response.status_code #resp.status
     
+    try:
+        #if http_status == 601:
+        #    return []
+    
+        if (http_status == 200) or (http_status == 201) or (http_status == 202): #http_status >= 200 and http_status <=202:
+            print(http_status, (type(http_status))) 
+            #save links visited to txt file
+            visited_links.add(url)
+            with open("visited_links.txt", "a") as file:
+                file.write(url + "\n")
+
+            raw_html = resp.raw_response.content
+
+            #parse html w/ Beautiful Soup
+            soup = BeautifulSoup(raw_html, features = "html.parser")
+            
+            #parse and tokenize text from url
+            text = soup.get_text()
+            tokens = tokenizer(text)
+            current_tokens = computeTokenFrequency(tokens)
+            #save tokens to tokenfile shelve db
+            syncTokenFile(current_tokens)       
+        
+            #check if it has more tokens than the last
+            global max_tokens_in_url
+            num_tokens = len(current_tokens)
+            if num_tokens > max_tokens_in_url:
+                max_tokens_in_url = num_tokens
+                url_with_max_tokens = url
+                #save page w/ most amount of tokens
+                syncLongestPage(num_tokens, url)            
+
+            found_ics_subdomains = []
+		    #find all <a> tags and extract link from href attribute
+            #possibly another loop??
+            for a_tags in soup.findAll("a"):
+                hyperlink = a_tags.get("href")
+
+                #check if path is absolute or relative 
+                is_absolute = bool(urlparse(hyperlink).netloc)
+                if is_absolute:
+                    no_fragment = urldefrag(hyperlink).url
+                else: #combine relative link w/ domain(netloc)
+                    full_hyperlink = urljoin(url, hyperlink)
+                    no_fragment = urldefrag(full_hyperlink).url
+                links.append(no_fragment)
+                #syncUniqueLinks(
+                domain = urlparse(no_fragment).netloc
+                if "ics.uci.edu" in domain:
+                    # unique_subdomains.add(domain)
+                    found_ics_subdomains.append(domain)
+            #save pages within ics.uci.edu domain
+            syncICSSubdomains(found_ics_subdomains)       
+
+        else:
+            return []
+
+    except Exception as error:
+        return []
+
+    sleep(0.5)
     return links
 
 ##### helper functions #####
@@ -205,8 +217,8 @@ def is_valid(url):
         #return not re.match(
         if re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx" #added powerpoint slideshow
+            + r"|png|tiff?|mid|mp2|mp3|mp4|war|img"
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|apk" #added ppsx, apk, war, img
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
