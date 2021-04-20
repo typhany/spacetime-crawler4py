@@ -1,12 +1,11 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urldefrag, urljoin
 import urllib.robotparser  
 from collections import defaultdict
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-#import requests
-
+import csv
 from bs4 import BeautifulSoup
 
 #global variables
@@ -19,37 +18,57 @@ def scraper(url, resp):
 
 def extract_next_links(url, resp):
     links = []
-    # Implementation requred.
-    #print(url, resp)
+    parsed = urlparse(url)    
 
-    #print("ok with crawl? -> ", checkRobots(url))
-    http_status = resp.status
-    #200 means good response -> OK
-    if http_status == 200 and not isVisited(url):
-        raw_html = resp.raw_response.content
-        #parse w/ Beautiful Soup
-        soup = BeautifulSoup(raw_html, features = "html.parser")
+    with open("tokenFreq.csv", "w") as tokencsv:
+    #need to count num of unique pages
+    #need to save subdomains and count
+    #need to get longest page in terms of words
 
-        #parse and tokenize text from url
-        text = soup.get_text()
-        tokens = tokenizer(text)
-        current_tokens = computeTokenFrequency(tokens)
-        total_tokens.update(current_tokens)
-        
-		#find all <a> tags and extract link from href attribute
-        for a_tags in soup.findAll("a"):
-            #hyperlink = a_tags["href"]
-            hyperlink = a_tags.get("href")
-            #total_links.append(hyperlink)
-            total_links.append(hyperlink)
-            links.append(hyperlink)
-            #print(hyperlink)
+        #print("ok with crawl? -> ", checkRobots(url))
+        http_status = resp.status
+        #200 means good response -> OK
+        if http_status == 200 and not isVisited(url):
+            raw_html = resp.raw_response.content
+            #parse w/ Beautiful Soup
+            soup = BeautifulSoup(raw_html, features = "html.parser")
+            
 
+            #parse and tokenize text from url
+            text = soup.get_text()
+            tokens = tokenizer(text)
+            current_tokens = computeTokenFrequency(tokens)
+            total_tokens.update(current_tokens)
+            #save tokens to file
+            writer = csv.writer(tokencsv)
+            for word, count in total_tokens.items():
+                writer.writerow([word, count])
+       
 
-    else:
-        pass
+		    #need to check if url has the most tokens
+
+ 
+
+		    #find all <a> tags and extract link from href attribute
+            for a_tags in soup.findAll("a"):
+                hyperlink = a_tags.get("href")
+                is_absolute = bool(urlparse(hyperlink).netloc)
+                if is_absolute:
+                    #only keep links discarding the fragment part
+                    no_fragment = urldefrag(hyperlink)[0]
+                    total_links.append(no_fragment)
+                    links.append(no_fragment)
+                else: #combine relative link w/ domain
+                    full_hyperlink = urljoin(url, hyperlink)
+                    no_fragment = urldefrag(full_hyperlink)[0]
+                         
+                    total_links.append(no_fragment)
+                    links.append(no_fragment)
+
+        else:
+            return []
     
-    return links#list()
+    return links
 
 def tokenizer(text):
     result = []
@@ -101,26 +120,23 @@ def isVisited(url):
 
 def isTrap(url):
     #check if url is a trap
-    #emails, calendars, hashtags (#),  
-    pass
+    parsed = urlparse(url)
 
-#for extra credit +1 point
-# def checkRobots(url):
-#     #given url, parse robots.txt to see if it is ok to crawl or not
-#     robots_url = url + "/robots.txt"
-#     robot_page = urllib.robotparser.RobotFileParser()
-#     robot_page.set_url(robots_url)
-#     robot_page.read()
+    #(1) path too long (aka infinitely iterating thru blog posts)
+    split_path = (parsed.path).split("/")
+    if len(split_path) > 4:
+        return True
 
-#     #check if it is ok to crawl
-#     validity = robot_page.can_fetch("*", robots_url)
-#     return validity
+    #(2) does parsed contain any unique keywords
+    trapwords = ["?replytocom=", "/tag/", "mailto:"]
+    if any(tword in url for tword in trapwords):
+        return True
 
+    #(3) ???
 
-
-
-
-
+    else:
+        return False
+    
 
 def is_valid(url):
     #valid domains 
@@ -132,11 +148,12 @@ def is_valid(url):
         if parsed.scheme not in set(["http", "https"]):
             return False
 
-        #if re.match(pattern1, parsed.netloc):
-        #    return True
+        if not re.match(pattern1, parsed.netloc) and not re.match(pattern2, parsed.netloc + parsed.path):
+            return False
 
-        #if re.match(pattern2, parsed.netloc + parsed.path):
-        #    return True
+        if isTrap(url):
+            return False
+
 
         #return not re.match(
         if re.match(
@@ -151,11 +168,13 @@ def is_valid(url):
         
             return False
        
-        if re.match(pattern1, parsed.netloc):
-            return True
-        if re.match(pattern2, parsed.netloc + parsed.path):
-            return True 
+        #if re.match(pattern1, parsed.netloc):
+        #    return True
+        #if re.match(pattern2, parsed.netloc + parsed.path):
+        #    return True 
 
+        else:
+            return True
 
 
 
