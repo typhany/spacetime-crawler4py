@@ -41,9 +41,8 @@ def extract_next_links(url, resp):
             #hyperlink = a_tags["href"]
             hyperlink = a_tags.get("href")
             #total_links.append(hyperlink)
-            if is_valid(hyperlink):
-                total_links.append(hyperlink)
-                links.append(hyperlink)
+            total_links.append(hyperlink)
+            links.append(hyperlink)
             #print(hyperlink)
 
 
@@ -102,7 +101,7 @@ def isVisited(url):
 
 def isTrap(url):
     #check if url is a trap
-    #emails, calendars 
+    #emails, calendars, hashtags (#),  
     pass
 
 #for extra credit +1 point
@@ -124,26 +123,23 @@ def isTrap(url):
 
 
 def is_valid(url):
-####
     #valid domains 
     pattern1 = re.compile(r".*\.(?:ics|cs|informatics|stat)\.uci\.edu")
-    #pattern2 = re.compile(r"today\.uci\.edu/department/information_computer_sciences/*")
-    
-    
-####
+    pattern2 = re.compile(r"today\.uci\.edu/department/information_computer_sciences/.*")
 
     try:
-        parsed = urlparse(url)
+        parsed = urlparse(url) #returns parseresult(scheme, netloc, path, params, query, fragment)
         if parsed.scheme not in set(["http", "https"]):
             return False
 
-        if not re.match(pattern1, parsed.netloc):
-            return False
-        #if not re.match(pattern2, parsed.netloc):
-        #    return False
+        #if re.match(pattern1, parsed.netloc):
+        #    return True
 
+        #if re.match(pattern2, parsed.netloc + parsed.path):
+        #    return True
 
-        return not re.match(
+        #return not re.match(
+        if re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
@@ -151,7 +147,19 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
+        
+            return False
+       
+        if re.match(pattern1, parsed.netloc):
+            return True
+        if re.match(pattern2, parsed.netloc + parsed.path):
+            return True 
+
+
+
+
+
 
     except TypeError:
         print ("TypeError for ", parsed)
