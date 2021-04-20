@@ -16,13 +16,6 @@ max_tokens_in_url = 0
 unique_subdomains = set()
 visited_links = set()
 
-#shelves to save tokens, longest page, subdomains in ics.uci.edu domain, unique pages
-#tokenfile = shelve.open("tokenFreq.db", writeback = True)
-#longestPage = shelve.open("longestPage.db", writeback = True)
-#ics_subdomains = shelve.open("ics_subdomains.db", writeback = True)
-#uniquePages = shelve.open("uniqueURLs.db", writeback = True)
-
-
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
@@ -169,9 +162,15 @@ def isTrap(url):
     if len(split_path) > 4:
         return True
 
-    #(2) does parsed contain any unique keywords
+    #(2) does url contain any unique keywords
     trapwords = ["?replytocom=", "?share=", "mailto:", "/pdf/"]
+    calendars = re.compile(r"\/events\/[0-9]{4}-[0-9]{2}-[0-9]{2}")
+    genomes = re.compile(r"\/(cgo|pgo|fgo)\/(p|f|c)[0-9]")
     if any(tword in url for tword in trapwords):
+        return True
+    if re.match(calendars, parsed.path):
+        return True
+    if bool(genomes.search(parsed.path)):
         return True
 
     #(3) ???
