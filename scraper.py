@@ -8,67 +8,80 @@ from nltk.corpus import stopwords
 import csv
 from bs4 import BeautifulSoup
 
+import shelve
+
+
 #global variables
-total_tokens = dict()
-total_links = []
+max_tokens_in_url = 0
+unique_subdomains = set()
+visited_links = set()
+
+#shelves to save tokens, longest page, subdomains in ics.uci.edu domain, unique pages
+#tokenfile = shelve.open("tokenFreq.db", writeback = True)
+#longestPage = shelve.open("longestPage.db", writeback = True)
+#ics_subdomains = shelve.open("ics_subdomains.db", writeback = True)
+#uniquePages = shelve.open("uniqueURLs.db", writeback = True)
+
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+    visited_links.add(url)
     links = []
     parsed = urlparse(url)    
 
-    with open("tokenFreq.csv", "w") as tokencsv:
-    #need to count num of unique pages
-    #need to save subdomains and count
-    #need to get longest page in terms of words
+    http_status = resp.status
+    if http_status >= 200 and http_status <=202: 
+        raw_html = resp.raw_response.content
 
-        #print("ok with crawl? -> ", checkRobots(url))
-        http_status = resp.status
-        #200 means good response -> OK
-        if http_status == 200 and not isVisited(url):
-            raw_html = resp.raw_response.content
-            #parse w/ Beautiful Soup
-            soup = BeautifulSoup(raw_html, features = "html.parser")
+        #parse html w/ Beautiful Soup
+        soup = BeautifulSoup(raw_html, features = "html.parser")
             
+        #parse and tokenize text from url
+        text = soup.get_text()
+        tokens = tokenizer(text)
+        current_tokens = computeTokenFrequency(tokens)
+        #save tokens to tokenfile shelve db
+        syncTokenFile(current_tokens)       
+        
+        #check if it has more tokens than the last
+        global max_tokens_in_url
+        num_tokens = len(current_tokens)
+        if num_tokens > max_tokens_in_url:
+            max_tokens_in_url = num_tokens
+            url_with_max_tokens = url
+            #save page w/ most amount of tokens
+            syncLongestPage(num_tokens, url)            
 
-            #parse and tokenize text from url
-            text = soup.get_text()
-            tokens = tokenizer(text)
-            current_tokens = computeTokenFrequency(tokens)
-            total_tokens.update(current_tokens)
-            #save tokens to file
-            writer = csv.writer(tokencsv)
-            for word, count in total_tokens.items():
-                writer.writerow([word, count])
-       
+        found_ics_subdomains = []
+		#find all <a> tags and extract link from href attribute
+        for a_tags in soup.findAll("a"):
+            hyperlink = a_tags.get("href")
 
-		    #need to check if url has the most tokens
+            #check if path is absolute or relative 
+            is_absolute = bool(urlparse(hyperlink).netloc)
+            if is_absolute:
+                no_fragment = urldefrag(hyperlink).url
+            else: #combine relative link w/ domain(netloc)
+                full_hyperlink = urljoin(url, hyperlink)
+                no_fragment = urldefrag(full_hyperlink).url
+            links.append(no_fragment)
+            #syncUniqueLinks(
+            domain = urlparse(no_fragment).netloc
+            if "ics.uci.edu" in domain:
+                # unique_subdomains.add(domain)
+                found_ics_subdomains.append(domain)
+        #save pages within ics.uci.edu domain
+        syncICSSubdomains(found_ics_subdomains)       
 
- 
-
-		    #find all <a> tags and extract link from href attribute
-            for a_tags in soup.findAll("a"):
-                hyperlink = a_tags.get("href")
-                is_absolute = bool(urlparse(hyperlink).netloc)
-                if is_absolute:
-                    #only keep links discarding the fragment part
-                    no_fragment = urldefrag(hyperlink)[0]
-                    total_links.append(no_fragment)
-                    links.append(no_fragment)
-                else: #combine relative link w/ domain
-                    full_hyperlink = urljoin(url, hyperlink)
-                    no_fragment = urldefrag(full_hyperlink)[0]
-                         
-                    total_links.append(no_fragment)
-                    links.append(no_fragment)
-
-        else:
-            return []
+    else:
+        return []
     
     return links
+
+##### helper functions #####
 
 def tokenizer(text):
     result = []
@@ -95,6 +108,34 @@ def computeTokenFrequency(tokens):
         token_dict[t] += 1
     return token_dict
 
+def syncTokenFile(token_dict):
+    tokenfile = shelve.open("tokenFreq.db", writeback = True)
+    for token, count in token_dict.items():
+        if token not in tokenfile:
+             tokenfile[token] = count
+        else:
+             tokenfile[token] += count
+    tokenfile.sync()
+    tokenfile.close()
+
+def syncLongestPage(token_count, url):
+    longestpage = shelve.open("longestPage.db", writeback = True)
+    longestpage["token_count"] = token_count
+    longestpage["url"] = url
+    longestpage.sync()
+    longestpage.close()
+
+def syncICSSubdomains(subdomain_list):
+    if subdomain_list:
+        ics_subdomains = shelve.open("ics_subdomains.db", writeback = True)
+        for sub in subdomain_list:
+            if sub not in ics_subdomains:
+                ics_subdomains[sub] = 1
+            else:
+                ics_subdomains[sub] += 1
+        ics_subdomains.sync()
+        ics_subdomains.close()
+'''
 def computeLinkCount(links):
     domains_set = set()
     subdomains_set = defaultdict(int)
@@ -109,14 +150,15 @@ def computeLinkCount(links):
            del subdomains_set[sd]
 
     return domains_set, subdomains_set
-
+'''
 
 def isVisited(url):
     #check if url has been visited or not
     #return bool
-    if url in total_links:
-        return True
-    return False
+    return url in visited_links
+    #if url in visited_links:
+    #    return True
+    #return False
 
 def isTrap(url):
     #check if url is a trap
@@ -128,7 +170,7 @@ def isTrap(url):
         return True
 
     #(2) does parsed contain any unique keywords
-    trapwords = ["?replytocom=", "/tag/", "mailto:"]
+    trapwords = ["?replytocom=", "?share=", "mailto:", "/pdf/"]
     if any(tword in url for tword in trapwords):
         return True
 
@@ -153,7 +195,8 @@ def is_valid(url):
 
         if isTrap(url):
             return False
-
+        if isVisited(url):
+            return False
 
         #return not re.match(
         if re.match(
