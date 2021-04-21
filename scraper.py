@@ -59,7 +59,7 @@ def extract_next_links(url, resp):
 
         #ratio to check if enough content to scrape
         if len(tokens) == 0 or len(unique_words)/len(tokens) <= 0.25:
-            print("not content rich"))
+            print("not content rich")
 
         else:
             current_tokens = computeTokenFrequency(tokens)
