@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse, urldefrag, urljoin
+import urllib.request
 import urllib.robotparser  
 from collections import defaultdict
 
@@ -9,18 +10,95 @@ import csv
 from bs4 import BeautifulSoup
 import requests
 import shelve
-from time import sleep
+import time
 
 #global variables
 max_tokens_in_url = 0
 unique_subdomains = set()
 visited_links = set()
+found_ics_subdomains = []
+current_links = []
 
 def scraper(url, resp):
+    result = []
     links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+
+    #remove fragment from link and check if under ics.uci.edu domain
+    if links:
+        for hyperlink in links:
+            nofragment = urldefrag(hyperlink).url
+            result.append(nofragment)
+         
+            if "ics.uci.edu" in nofragment:
+                found_ics_subdomains.append(nofragment)
+        syncICSSubdomains(found_ics_subdomains)
+
+
+        return [link for link in result if is_valid(link)]
+    else:
+        return []
 
 def extract_next_links(url, resp):
+    #print(url, resp.status)
+    links = []
+
+    if resp.status == 200 or resp.status == 201 or resp.status == 202:
+        print("status: ", resp.status, "--- will scrape")
+        raw_html = resp.raw_response.content
+        soup = BeautifulSoup(raw_html, features = "html.parser")
+        
+        visited_links.add(url)
+        with open("visited_links.txt", "a") as file:
+            file.write(url + "\n") 
+        ### 
+        
+        text = soup.get_text()
+        tokens = tokenizer(text) #total words
+        unique_words = set(tokens) #unique words
+        #current_tokens = computeTokenFrequency(tokens)
+
+        #ratio to check if enough content to scrape
+        if len(tokens) == 0 or len(unique_words)/len(tokens) <= 0.25:
+            print("not content rich"))
+
+        else:
+            current_tokens = computeTokenFrequency(tokens)
+            syncTokenFile(current_tokens)       
+ 
+            global max_tokens_in_url
+            num_tokens = len(current_tokens)
+            if num_tokens > max_tokens_in_url:
+                max_tokens_in_url = num_tokens
+                syncLongestPage(num_tokens, url)
+     
+        ###  
+            start_time = time.time()
+     
+            for a_tags in soup.findAll("a"):
+                 hyperlink = a_tags.get("href")
+                 is_absolute = bool(urlparse(hyperlink).netloc)
+                 if is_absolute:
+                     links.append(hyperlink)
+                 else:
+                     full_hyperlink = urljoin(url, hyperlink)
+                     links.append(full_hyperlink)
+
+            current_time = time.time()  
+            if (current_time - start_time > 6):
+                return []
+            else:
+                return links  
+
+
+
+    else:
+        print("status: ", resp.status, "--- valid url but will not scrape") 
+    
+    #return links                    
+
+
+
+    '''
     #visited_links.add(url)
     links = []
     parsed = urlparse(url)    
@@ -29,8 +107,6 @@ def extract_next_links(url, resp):
     http_status = response.status_code #resp.status
     
     try:
-        #if http_status == 601:
-        #    return []
     
         if (http_status == 200) or (http_status == 201) or (http_status == 202): #http_status >= 200 and http_status <=202:
             print(http_status, (type(http_status))) 
@@ -60,36 +136,66 @@ def extract_next_links(url, resp):
                 #save page w/ most amount of tokens
                 syncLongestPage(num_tokens, url)            
 
-            found_ics_subdomains = []
+            #found_ics_subdomains = []
 		    #find all <a> tags and extract link from href attribute
             #possibly another loop??
+
             for a_tags in soup.findAll("a"):
                 hyperlink = a_tags.get("href")
-
-                #check if path is absolute or relative 
+                
                 is_absolute = bool(urlparse(hyperlink).netloc)
                 if is_absolute:
-                    no_fragment = urldefrag(hyperlink).url
-                else: #combine relative link w/ domain(netloc)
-                    full_hyperlink = urljoin(url, hyperlink)
-                    no_fragment = urldefrag(full_hyperlink).url
-                links.append(no_fragment)
-                #syncUniqueLinks(
-                domain = urlparse(no_fragment).netloc
-                if "ics.uci.edu" in domain:
-                    # unique_subdomains.add(domain)
-                    found_ics_subdomains.append(domain)
-            #save pages within ics.uci.edu domain
-            syncICSSubdomains(found_ics_subdomains)       
+                    links.append(hyperlink)
+                else:
+                    links.append(url + hyperlink)
 
-        else:
-            return []
+                #print(hyperlink)
+                #links.append(hyperlink)
+                #check if path is absolute or relative 
+                #is_absolute = bool(urlparse(hyperlink).netloc)
+                #print(hyperlink, is_absolute)
+                
+                #if is_absolute:
+                 #   print("yes!!")
+                  #  no_fragment = urldefrag(hyperlink).url
+                    #print(no_fragment)
+                    #links.append(no_fragment)
+                    #print("abs links: ", links)
+                    #checkSubdomain(no_fragment)
+                    #print("abs:", no_fragment)
+                #else: #combine relative link w/ domain(netloc)
+                #    full_hyperlink = urljoin(url, hyperlink)
+                #    no_fragment = urldefrag(full_hyperlink).url
+                   
+                #    links.append(full_fragment)
+                #    checkSubdomain(full_fragment)
+                    #print("rel:", full_fragment)
+             
+               #syncUniqueLinks(
+               # domain = urlparse(no_fragment).netloc
+               # if "ics.uci.edu" in domain:
+               #    unique_subdomains.add(domain)
+               #     found_ics_subdomains.append(domain)
+            #save pages within ics.uci.edu domain
+           # syncICSSubdomains(found_ics_subdomains)
+      
 
     except Exception as error:
-        return []
+        pass
 
-    sleep(0.5)
+    #sleep(0.5)
+    #print(links)
     return links
+    '''
+
+
+def checkSubdomain(url):
+    domain = urlparse(url).netloc
+    if "ics.uci.edu" in domain:
+        found_ics_subdomains.append(subdomain)
+    syncICSSubdomains(found_ics_subdomains)
+    
+
 
 ##### helper functions #####
 
@@ -161,11 +267,17 @@ def computeLinkCount(links):
 
     return domains_set, subdomains_set
 '''
-
 def isVisited(url):
+    alreadyVisited = []
+    if ("visited_links.txt"):
+        with open("visited_links.txt", "r", encoding = "utf-8") as file:
+            for line in file:
+                alreadyVisited.append(line.rstrip())
+    return url in alreadyVisited
     #check if url has been visited or not
     #return bool
-    return url in visited_links
+
+    #return url in visited_links
     #if url in visited_links:
     #    return True
     #return False
@@ -180,7 +292,7 @@ def isTrap(url):
         return True
 
     #(2) does url contain any unique keywords
-    trapwords = ["?replytocom=", "?share=", "mailto:", "/pdf/"]
+    trapwords = ["?replytocom=", "?share=", "mailto:", "/pdf/", ".pdf", ".DS_STORE", "/events/", "/download/download.inc"]
     calendars = re.compile(r"\/events\/[0-9]{4}-[0-9]{2}-[0-9]{2}")
     genomes = re.compile(r"\/(cgo|pgo|fgo)\/(p|f|c)[0-9]")
     if any(tword in url for tword in trapwords):
@@ -190,7 +302,6 @@ def isTrap(url):
     if bool(genomes.search(parsed.path)):
         return True
 
-    #(3) ???
 
     else:
         return False
