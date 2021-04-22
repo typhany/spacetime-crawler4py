@@ -192,7 +192,9 @@ def isTrap(url):
         return True
 
     #(2) does url contain any unique keywords to urls that iterate over links or lead to bizzare places
-    trapwords = ["?id=", "?page_id=", "?replytocom=", "?share=", "?ical=", "?tab_files=", "?letter=", "mailto:", ".pdf", ".DS_STORE", ".Thesis", ".Z", "/pdf/", "/events/", "/news/", "/blog/", "/tag/", "/download/"]
+    trapwords = ["?id=", "?page_id=", "?replytocom=", "?share=", "?ical=", "?tab_files=", "?letter=", 
+                  "mailto:", ".pdf", ".DS_STORE", ".Thesis", ".Z", 
+                  "/pdf/", "/events/", "/blog/", "/tag/", "/download/"]
     calendars = re.compile(r"\/events\/[0-9]{4}-[0-9]{2}-[0-9]{2}")
     genomes = re.compile(r"\/(cgo|pgo|fgo)\/(p|f|c)[0-9]")
     if any(tword in url for tword in trapwords):
@@ -242,7 +244,7 @@ def is_valid(url):
         #return not re.match(
         if re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4|mpg|war|img|psp|py|m"
+            + r"|png|tiff?|mid|mp2|mp3|mp4|mpg|war|img|psp|py|m|pps|bib|odb"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|apk" #added m, psp, py, ppsx, apk, war, img, mpg
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
