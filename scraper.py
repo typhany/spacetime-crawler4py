@@ -4,8 +4,8 @@ import urllib.request
 import urllib.robotparser  
 from collections import defaultdict
 
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+from nltk.tokenize import TweetTokenizer#word_tokenize
+#from nltk.corpus import stopwords
 import csv
 from bs4 import BeautifulSoup
 import requests
@@ -154,14 +154,22 @@ def syncSubdomains(subdomains):
 def tokenizer(text):
     result = []
 
-    tokens = word_tokenize(text)
-    stopwords_list = stopwords.words('english')
-
+    tokens = TweetTokenizer().tokenize(text)
+    stopwords_list = get_stopwords()
     for t in tokens:
-        if t not in stopwords_list:
+        if t not in stopwords_list and t.isalnum():
             result.append(t.lower())
 
     return result
+
+def get_stopwords():
+    stopwords = []
+    with open("stopwords.txt", "r", encoding = "utf-8") as file:
+        words = file.readlines()
+    for sword in words:
+        stopwords.append(sword.rstrip("\r\n"))
+    return stopwords
+
 
 
 def computeTokenFrequency(tokens):
