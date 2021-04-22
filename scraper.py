@@ -27,7 +27,8 @@ def scraper(url, resp):
         for hyperlink in links:
             nofragment = urldefrag(hyperlink).url
             result.append(nofragment)
-         
+            
+            #check if hyperlink is under ics.uci.edu domain 
             if "ics.uci.edu" in nofragment:
                 ics_subdomains[nofragment] += 1
         syncSubdomains(ics_subdomains)
@@ -52,16 +53,16 @@ def extract_next_links(url, resp):
 
         text = soup.get_text()
 
-        is_pdf = checkIfPDF(soup)
+        #is_pdf = checkIfPDF(soup)
 
         tokens = tokenizer(text) #total words
         unique_words = set(tokens) #unique words
         #current_tokens = computeTokenFrequency(tokens)
 
         #ratio to check if enough content to scrape
-        if is_pdf:
-            print("is pdf -- do not scrape")
-            return []
+        #if is_pdf:
+            #print("is pdf -- do not scrape")
+            #return []
         if len(tokens) < 100 or len(unique_words)/len(tokens) <= 0.25:
             print("not content rich")
             return []
@@ -169,9 +170,9 @@ def computeTokenFrequency(tokens):
         token_dict[t] += 1
     return token_dict
 
-def checkIfPDF(soup):
+#def checkIfPDF(soup):
     #check url page type if pdf, do not scrape (takes too long)
-    return "pdf" in soup
+ #   return "pdf" in soup
 
 def isVisited(url):
     alreadyVisited = []
@@ -191,7 +192,7 @@ def isTrap(url):
     if len(split_path) > 4:
         return True
 
-    #(2) does url contain any unique keywords to urls that iterate over links or lead to bizzare places
+    #(2) does url follow unique patterns, contain keywords to urls that iterate over links or lead to bizzare places
     trapwords = ["?id=", "?page_id=", "?replytocom=", "?share=", "?ical=", "?tab_files=", "?letter=", 
                   "mailto:", ".pdf", ".DS_STORE", ".Thesis", ".Z", 
                   "/pdf/", "/events/", "/blog/", "/tag/", "/download/"]
@@ -245,7 +246,7 @@ def is_valid(url):
         if re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4|mpg|war|img|psp|py|m|pps|bib|odb"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|apk" #added m, psp, py, ppsx, apk, war, img, mpg
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|apk" #added pps, bib, odb, m, psp, py, ppsx, apk, war, img, mpg
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
