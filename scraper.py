@@ -31,11 +31,6 @@ def scraper(url, resp):
             if "ics.uci.edu" in nofragment:
                 ics_subdomains[nofragment] += 1
         syncSubdomains(ics_subdomains)
-        #with open("ics_subdomains.txt", "a") as file:
-        #    for subdomain in ics_subdomains:
-        #        file.write(subdomain + "\n")
-        #syncICSSubdomains(found_ics_subdomains)
-
 
         return [link for link in result if is_valid(link)]
     else:
@@ -44,7 +39,7 @@ def scraper(url, resp):
 def extract_next_links(url, resp):
     #print(url, resp.status)
     links = []
-
+    
     if resp.status == 200 or resp.status == 201 or resp.status == 202:
         print("status: ", resp.status, "--- will scrape")
         raw_html = resp.raw_response.content
@@ -54,15 +49,22 @@ def extract_next_links(url, resp):
         with open("visited_links.txt", "a") as file:
             file.write(url + "\n") 
         ### 
-        
+
         text = soup.get_text()
+
+        is_pdf = checkIfPDF(soup)
+
         tokens = tokenizer(text) #total words
         unique_words = set(tokens) #unique words
         #current_tokens = computeTokenFrequency(tokens)
 
         #ratio to check if enough content to scrape
+        if is_pdf:
+            print("is pdf -- do not scrape")
+            return []
         if len(tokens) < 100 or len(unique_words)/len(tokens) <= 0.25:
             print("not content rich")
+            return []
 
         else:
             current_tokens = computeTokenFrequency(tokens)
@@ -95,7 +97,7 @@ def extract_next_links(url, resp):
                 print("overtime")
                 return []
             else:
-                print("returning links")
+                print("returning links: ", bool(links))
                 return links  
 
 
@@ -156,7 +158,7 @@ def tokenizer(text):
 
     for t in tokens:
         if t not in stopwords_list:
-            result.append(t)
+            result.append(t.lower())
 
     return result
 
@@ -167,6 +169,9 @@ def computeTokenFrequency(tokens):
         token_dict[t] += 1
     return token_dict
 
+def checkIfPDF(soup):
+    #check url page type if pdf, do not scrape (takes too long)
+    return "pdf" in soup
 
 def isVisited(url):
     alreadyVisited = []
@@ -186,8 +191,8 @@ def isTrap(url):
     if len(split_path) > 4:
         return True
 
-    #(2) does url contain any unique keywords
-    trapwords = ["?replytocom=", "?share=", "?tab_files=", "mailto:", "/pdf/", ".pdf", ".DS_STORE", "/events/", "/blog/", "/tag/", "/download/"]
+    #(2) does url contain any unique keywords to urls that iterate over links or lead to bizzare places
+    trapwords = ["?id=", "?page_id=", "?replytocom=", "?share=", "?ical=", "?tab_files=", "?letter=", "mailto:", ".pdf", ".DS_STORE", ".Thesis", ".Z", "/pdf/", "/events/", "/news/", "/blog/", "/tag/", "/download/"]
     calendars = re.compile(r"\/events\/[0-9]{4}-[0-9]{2}-[0-9]{2}")
     genomes = re.compile(r"\/(cgo|pgo|fgo)\/(p|f|c)[0-9]")
     if any(tword in url for tword in trapwords):
@@ -197,18 +202,24 @@ def isTrap(url):
     if bool(genomes.search(parsed.path)):
         return True
 
-    #(3) if query is too long (aka infinitely searching thru page)
-    split_query = (parsed.query).split("%")
-    if len(split_query) > 3:
-        return True
 
-    #(4) if query has "?" and "&"
-    if "&" in parsed.query or "?" in parsed.query:
-        return True
+    #(3) if url has "?", "&", or "%" ==> indicates long messy url (? and &) OR redirection (%)
+    if "&" in url or "?" in url:
+        count = 0
+        for char in url:
+            if char == "&" or char == "?":
+                count += 1
+        if count > 1:
+            return True
 
+    if "%" in url:
+        return True
+    #(4) more specific things
+    if "archive.ics.uci.edu" == parsed.netloc:
+        if "machine-learning-databaes" in parsed.path:
+            return True
     else:
         return False
-    
 
 def is_valid(url):
     #valid domains 
@@ -231,8 +242,8 @@ def is_valid(url):
         #return not re.match(
         if re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4|war|img"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|apk" #added ppsx, apk, war, img
+            + r"|png|tiff?|mid|mp2|mp3|mp4|mpg|war|img|psp|py|m"
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ppsx|apk" #added m, psp, py, ppsx, apk, war, img, mpg
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
