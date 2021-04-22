@@ -30,7 +30,8 @@ def scraper(url, resp):
             
             #check if hyperlink is under ics.uci.edu domain 
             if "ics.uci.edu" in nofragment:
-                ics_subdomains[nofragment] += 1
+                hostname = urlparse(nofragment).netloc
+                ics_subdomains[hostname] += 1
         syncSubdomains(ics_subdomains)
 
         return [link for link in result if is_valid(link)]
