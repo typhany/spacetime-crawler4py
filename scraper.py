@@ -202,7 +202,7 @@ def isTrap(url):
         return True
 
     #(2) does url follow unique patterns, contain keywords to urls that iterate over links or lead to bizzare places
-    trapwords = ["?id=", "?page_id=", "?replytocom=", "?share=", "?ical=", "?tab_files=", "?letter=", 
+    trapwords = ["?page_id=", "?replytocom=", "?share=", "?ical=", "?tab_files=", "?letter=", 
                   "mailto:", ".pdf", ".DS_STORE", ".Thesis", ".Z", 
                   "/pdf/", "/events/", "/blog/", "/tag/", "/download/"]
     calendars = re.compile(r"\/events\/[0-9]{4}-[0-9]{2}-[0-9]{2}")
@@ -226,10 +226,7 @@ def isTrap(url):
 
     if "%" in url:
         return True
-    #(4) more specific things
-    if "archive.ics.uci.edu" == parsed.netloc:
-        if "machine-learning-databaes" in parsed.path:
-            return True
+    
     else:
         return False
 
