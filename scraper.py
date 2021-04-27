@@ -4,8 +4,8 @@ import urllib.request
 import urllib.robotparser  
 from collections import defaultdict
 
-from nltk.tokenize import TweetTokenizer#word_tokenize
-#from nltk.corpus import stopwords
+from nltk.tokenize import TweetTokenizer
+
 import csv
 from bs4 import BeautifulSoup
 import requests
@@ -54,16 +54,11 @@ def extract_next_links(url, resp):
 
         text = soup.get_text()
 
-        #is_pdf = checkIfPDF(soup)
-
         tokens = tokenizer(text) #total words
         unique_words = set(tokens) #unique words
-        #current_tokens = computeTokenFrequency(tokens)
+        
 
         #ratio to check if enough content to scrape
-        #if is_pdf:
-            #print("is pdf -- do not scrape")
-            #return []
         if len(tokens) < 100 or len(unique_words)/len(tokens) <= 0.25:
             print("not content rich")
             return []
@@ -77,7 +72,6 @@ def extract_next_links(url, resp):
             num_tokens = len(current_tokens)
             if num_tokens > max_tokens_in_url:
                 max_tokens_in_url = num_tokens
-                #syncLongestPage(num_tokens, url)
                 with open("longestPage.txt", "w") as file:
                     file.write("number of tokens: " + str(num_tokens) + "\n" + "url: " + url + "\n")
                     
@@ -179,10 +173,6 @@ def computeTokenFrequency(tokens):
         token_dict[t] += 1
     return token_dict
 
-#def checkIfPDF(soup):
-    #check url page type if pdf, do not scrape (takes too long)
- #   return "pdf" in soup
-
 def isVisited(url):
     alreadyVisited = []
     if ("visited_links.txt"):
@@ -260,11 +250,7 @@ def is_valid(url):
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
         
             return False
-       
-        #if re.match(pattern1, parsed.netloc):
-        #    return True
-        #if re.match(pattern2, parsed.netloc + parsed.path):
-        #    return True 
+    
 
         else:
             return True
